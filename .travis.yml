@@ -43,7 +43,7 @@ before_script:
   #   fi
 # command to run tests
 script:
-  - make -j4 pytest
+  - make -j4 pytest python=python pip=pip
 after_success:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "3.5" ]]; then coveralls; else printf "skip coveralls"; fi
 before_deploy:
