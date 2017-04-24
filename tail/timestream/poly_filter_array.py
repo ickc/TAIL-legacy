@@ -1,7 +1,10 @@
+from __future__ import print_function
+from builtins import range
+from builtins import object
 import numpy as np
 
 
-class LegCache():
+class LegCache(object):
     def __init__(self):
         self.d = {}
         pass
@@ -75,11 +78,11 @@ def poly_filter_array(
             istart, n = scan_list[s]
             start = istart - ibegin
             if n <= polyorder:  # otherwise cannot compute legendre polynomials
-                for i in xrange(nch):
+                for i in range(nch):
                     mask[i, start:start + n] = 0  # flag it
                     # remove this region from actual data as well
                     mask_remove[i, start:start + n] = 0
-                    print 'Not enough points (%d) to build legendre of order (%d)' % (n, polyorder)
+                    print('Not enough points (%d) to build legendre of order (%d)' % (n, polyorder))
                 continue
             goodhits = np.sum(mask[:, start:start + n], axis=1)
             if n != nold:
@@ -88,7 +91,7 @@ def poly_filter_array(
                 nold = n
             # handle no masked ones
 
-            for i in xrange(nch):
+            for i in range(nch):
                 if goodhits[i] != n:
                     continue  # skip for now
                 # filter_slice_legendre_qr_nomask_precalc_inplace(array[i,start:start+n],legendres,rinvqt)
@@ -99,7 +102,7 @@ def poly_filter_array(
 #				array[i,start:start+n] = filter_slice_legendre_qr_nomask_precalc(
 #					array[i,start:start+n], legendres,rinv,qt)
 
-            for i in xrange(nch):
+            for i in range(nch):
                 if goodhits[i] == n:
                     continue  # skip since dealt with above
                 if goodhits[i] < minfrac * n:  # not enough points
