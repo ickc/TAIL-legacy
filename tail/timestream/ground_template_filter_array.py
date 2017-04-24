@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import weave
 
 def simple_map_prepare(nch,npix):
 	signal_map = np.zeros((nch,npix))
