@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ickc/TAIL.svg?branch=master)](https://travis-ci.org/ickc/TAIL)
+
 # Introduction
 
 Experimental pipeline as an alternative to POLARBEAR's AnalysisBackend — Refactorize, modernize, cythonize, parallelize.
