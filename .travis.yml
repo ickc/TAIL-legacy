@@ -14,17 +14,17 @@ python:
   # # pypy (version info from [Changelogs — PyPy documentation](http://doc.pypy.org/en/latest/index-of-whatsnew.html))
   # - "pypy"  # PyPy2.7 5.3.1 (CPython 2.7 compatible)
   # - "pypy3" # PyPy3 2.4.0 (CPython 3.2 compatible)
-matrix:
-  allow_failures:
+# matrix:
+  # allow_failures:
     # - python: "3.3"
     # - python: "3.4"
     # - python: "3.5"
-    - python: "3.6"
+    # - python: "3.6"
     # - python: "3.6-dev"
     # - python: "nightly"
     # - python: "pypy"
     # - python: "pypy3"
-  fast_finish: true
+  # fast_finish: true
 # install dependencies
 install:
   # latest pip dropped support for py3.2, which is the version of python in pypy3
