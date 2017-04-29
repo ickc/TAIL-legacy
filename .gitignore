@@ -10,6 +10,11 @@ __pycache__/
 dist/
 pantable.egg-info/
 
+# setup.py & cython
+build/
+*.c
+*.so
+
 # coverage
 .coverage
 htmlcov/

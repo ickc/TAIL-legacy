@@ -1,10 +1,14 @@
 SHELL := /usr/bin/env bash
 
 # configure engine
-python := python2
-pip := pip2
+python := python
+pip := pip
+CC = icc
 
 # Main Targets ########################################################################################################################################################################################
+
+cython:
+	CC=$(CC) python setup.py build_ext --inplace
 
 test: pytest pep8
 	coverage html
@@ -13,8 +17,8 @@ testFull: pytest pep8 pylint
 
 clean:
 	rm -f .coverage
-	rm -rf htmlcov tail.egg-info
-	find . -type f -name "*.py[co]" -delete -or -type d -name "__pycache__" -delete
+	rm -rf htmlcov tail.egg-info build
+	find . -type f -name "*.py[co]" -delete -or -type d -name "__pycache__" -delete -or -type f -name "*.c" -delete -or -type f -name "*.so" -delete
 
 # Making dependancies #################################################################################################################################################################################
 
