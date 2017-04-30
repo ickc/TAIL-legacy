@@ -174,13 +174,13 @@ def ground_template_filter_array(
 
     Parameters
     ----------
-    input_array: array_like
+    input_array: numpy.ndarray
         shape: (number of channels, number of time steps)
         Input timestream, mutated inplace.
-    az: array_like
+    az: numpy.ndarray
         shape: input_array[0]
         The azimuth of the timestream.
-    mask: array_like
+    mask: numpy.ndarray
         shape: input_array
         dtype: bool
     pixel_size: float
@@ -189,7 +189,7 @@ def ground_template_filter_array(
         and remove component from timestream that isn't fixed with the ground
     lr: bool
         If true, ground substraction done separately on left and right moving scans
-    filtmask: array_like
+    filtmask: numpy.ndarray
         shape: input_array
         dtype: bool
         default: None
