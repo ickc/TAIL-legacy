@@ -3,7 +3,7 @@ cimport numpy as np
 import cython
 
 from cython.view cimport array as cvarray
-from cpython cimport bool
+from libcpp cimport bool
 from cython.parallel import parallel, prange
 
 from libc.math cimport round
@@ -69,6 +69,9 @@ def ground_template_filter_array(
         filtmask is preprocessed from mask and addtional masking e.g. from point source
         In largepatch filtmask refers to wafermask_chan_filt
     '''
+    # loop indices
+    cdef Py_ssize_t i, j, k
+
     # initialize
     if filtmask is not None:
         mask = filtmask
@@ -80,12 +83,9 @@ def ground_template_filter_array(
     cdef int nPix = <int>round(az_range / pixel_size)
 
     # get pointing: an array where each elements is the n-th bin
-    # beaware of the (n+1)-th bin that needs to be dealt with separately
+    # beaware of the last bin that needs to be dealt with separately
     cdef Py_ssize_t* pointing = <Py_ssize_t*>malloc(nTime * sizeof(Py_ssize_t))
-#     pointing_init = cvarray(shape=(nTime,), itemsize=sizeof(Py_ssize_t), format="i")
-#     cdef Py_ssize_t[:] pointing = pointing_init
     cdef double nPix_per_range = nPix / az_range
-    cdef Py_ssize_t i, j
     for i in prange(nTime, nogil=True, schedule='guided', num_threads=num_threads, num_threads=num_threads):
         # possible values: [0, 1, ..., nPix]
         pointing[i] = <Py_ssize_t>((az[i] - az_min) * nPix_per_range)
@@ -93,40 +93,39 @@ def ground_template_filter_array(
     # bins are arrays of pixels
     cdef int nBin = nPix + 1
     # the signal
-#     bins_signal = cvarray(shape=(nCh, nBin), itemsize=sizeof(double), format="i")
-#     bins_signal[...] = 0
-#     # number of hits of signals
-#     bins_hit = cvarray(shape=(nCh, nBin), itemsize=sizeof(int), format="i")
-#     bins_hit[...] = 0
     cdef double[:, :] bins_signal = np.zeros((nCh, nBin))
     # number of hits of signals
     # the use of machine epsilon is to avoid special casing 0
     cdef double[:, :] bins_hit = np.full((nCh, nBin), EPSILON)
 
-    cdef Py_ssize_t k
     if not lr:
-        # calculate ground template
-        # TODO: SIMD
         for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
+            # calculate ground template
+            ## add total signal and no. of hits
             for j in range(nTime):
                 if mask[i, j]:
                     k = pointing[j]
                     bins_signal[i, k] += input_array[i, j]
                     bins_hit[i, k] += 1
-                # the following should be better for SIMD, but is slower for me
+                # the following should be better for SIMD, but is actually slower
                 # k = pointing[j]
                 # bins_signal[i, k] += input_array[i, j] * mask[i, j]
                 # bins_hit[i, k] += mask[i, j]
-        for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
+
+            ## average signal
             for j in range(nPix - 1):
                 bins_signal[i, j] /= bins_hit[i, j]
-            # combine last 2 bins to last pixel
+            ### combine last 2 bins to last pixel
             bins_signal[i, nPix - 1] = \
                 (bins_signal[i, nPix - 1] + bins_signal[i, nPix]) /\
                 (bins_hit[i, nPix - 1] + bins_hit[i, nPix])
-        # substraction
-        for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
-            for j in range(nTime):
-                input_array[i, j] -= bins_signal[i, pointing[j]]
+
+            # substraction
+            if groundmap:
+                for j in range(nTime):
+                    input_array[i, j] = bins_signal[i, pointing[j]]
+            else:
+                for j in range(nTime):
+                    input_array[i, j] -= bins_signal[i, pointing[j]]
 
     free(pointing)
