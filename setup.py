@@ -3,6 +3,9 @@ from distutils.extension import Extension
 from Cython.Build import cythonize
 import numpy
 
+import Cython.Compiler.Options
+Cython.Compiler.Options.annotate = True
+
 extensions = [
     Extension("*", ["**/*.pyx"],
         include_dirs = [numpy.get_include()],
