@@ -18,5 +18,6 @@ def test_poly_filter_array():
             poly_filter_array_output = pickle.load(f, encoding='latin1')
         else:
             poly_filter_array_output = pickle.load(f)
-    poly_filter_array(*poly_filter_array_input)
+    coeff_out = poly_filter_array(*poly_filter_array_input)
     assertIdenticalList(poly_filter_array_input, poly_filter_array_output)
+    return coeff_out
