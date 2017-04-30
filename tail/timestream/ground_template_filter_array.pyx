@@ -40,7 +40,8 @@ def ground_template_filter_array(
         double pixel_size,
         bool groundmap=False,
         bool lr=False,
-        np.ndarray[np.uint8_t, cast=True, ndim=2] filtmask=None):
+        np.ndarray[np.uint8_t, cast=True, ndim=2] filtmask=None,
+        int num_threads=4):
     '''
     Remove ground template from array timestreams
 
@@ -85,7 +86,7 @@ def ground_template_filter_array(
 #     cdef Py_ssize_t[:] pointing = pointing_init
     cdef double nPix_per_range = nPix / az_range
     cdef Py_ssize_t i, j
-    for i in range(nTime):
+    for i in prange(nTime, nogil=True, schedule='guided', num_threads=num_threads, num_threads=num_threads):
         # possible values: [0, 1, ..., nPix]
         pointing[i] = <Py_ssize_t>((az[i] - az_min) * nPix_per_range)
 
@@ -106,17 +107,17 @@ def ground_template_filter_array(
     if not lr:
         # calculate ground template
         # TODO: SIMD
-        for i in range(nCh):
+        for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
             for j in range(nTime):
                 if mask[i, j]:
                     k = pointing[j]
                     bins_signal[i, k] += input_array[i, j]
                     bins_hit[i, k] += 1
-                    # the following should be better for SIMD, but is slower for me
-#                 k = pointing[j]
-#                 bins_signal[i, k] += input_array[i, j] * mask[i, j]
-#                 bins_hit[i, k] += mask[i, j]
-        for i in range(nCh):
+                # the following should be better for SIMD, but is slower for me
+                # k = pointing[j]
+                # bins_signal[i, k] += input_array[i, j] * mask[i, j]
+                # bins_hit[i, k] += mask[i, j]
+        for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
             for j in range(nPix - 1):
                 bins_signal[i, j] /= bins_hit[i, j]
             # combine last 2 bins to last pixel
@@ -124,7 +125,7 @@ def ground_template_filter_array(
                 (bins_signal[i, nPix - 1] + bins_signal[i, nPix]) /\
                 (bins_hit[i, nPix - 1] + bins_hit[i, nPix])
         # substraction
-        for i in range(nCh):
+        for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
             for j in range(nTime):
                 input_array[i, j] -= bins_signal[i, pointing[j]]
 
