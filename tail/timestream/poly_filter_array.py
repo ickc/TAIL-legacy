@@ -37,22 +37,48 @@ def prep_legendre(n, polyorder):
 
 
 def poly_filter_array(
-        array,
+        input_array,
         mask_remove,
         mask,
         scan_list,
         ibegin,
         polyorder,
         minfrac=.75):
-    """ writes over input array
+    """
+    Parameters
+    ----------
+    input_array: numpy.ndarray
+        dtype: float64
+        shape: (number of channels, number of time steps)
+        Input timestream, mutated inplace.
+    mask_remove: numpy.ndarray
+        dtype: bool
+        shape: same as input_array
+    mask: numpy.ndarray
+        dtype: bool
+        shape: same as input_array
+        may be the same as mask_remove
+    scan_list: array_like
+        dtype: numpy.int64
+        shape: (number of scan, 2)
+        each element contains (starting point of the scan, length of the scan)
+    ibegin: int
+    polyorder: int
+    minfrac: float
+
+    Returns
+    -------
+    coeff_out: numpy.ndarray
+        dtype: float64
+        shape: (input_array[0], len(scan_list), polyorder + 1)
     """
     nold = -1
     # do nothing
     if polyorder < 0:
-        return array
+        return input_array
     #damn, work
-    nch = array.shape[0]
-    nt = array.shape[1]
+    nch = input_array.shape[0]
+    nt = input_array.shape[1]
     ns = len(scan_list)
 
     coeff_out = np.zeros((nch, ns, polyorder + 1))
@@ -64,12 +90,12 @@ def poly_filter_array(
         for s in range(len(scan_list)):
             istart, n = scan_list[s]
             start = istart - ibegin
-#			array[:,start:start+n] -= tile(np.mean(array[:,start:start+n]*mask[:,start:start+n],axis=1).reshape(nch,1),[1,n])
+#			input_array[:,start:start+n] -= tile(np.mean(input_array[:,start:start+n]*mask[:,start:start+n],axis=1).reshape(nch,1),[1,n])
             for i in range(nch):
                 if np.any(mask[i, start:start + n]):
                     mean = np.average(
-                        array[i, start:start + n], weights=mask[i, start:start + n])
-                    array[i, start:start + n] -= mean
+                        input_array[i, start:start + n], weights=mask[i, start:start + n])
+                    input_array[i, start:start + n] -= mean
                     coeff_out[i, s, 0] = mean
 
     # other cases
@@ -94,13 +120,13 @@ def poly_filter_array(
             for i in range(nch):
                 if goodhits[i] != n:
                     continue  # skip for now
-                # filter_slice_legendre_qr_nomask_precalc_inplace(array[i,start:start+n],legendres,rinvqt)
-                bolo = array[i, start:start + n]
+                # filter_slice_legendre_qr_nomask_precalc_inplace(input_array[i,start:start+n],legendres,rinvqt)
+                bolo = input_array[i, start:start + n]
                 coeff = np.dot(rinvqt, bolo)
                 coeff_out[i, s, :] = coeff
                 bolo -= np.dot(legendres, coeff)
-#				array[i,start:start+n] = filter_slice_legendre_qr_nomask_precalc(
-#					array[i,start:start+n], legendres,rinv,qt)
+#				input_array[i,start:start+n] = filter_slice_legendre_qr_nomask_precalc(
+#					input_array[i,start:start+n], legendres,rinv,qt)
 
             for i in range(nch):
                 if goodhits[i] == n:
@@ -111,7 +137,7 @@ def poly_filter_array(
                     mask_remove[i, start:start + n] = 0
                     continue
                 bolo, coeff = filter_slice_legendre_qr_mask_precalc(
-                    array[i, start:start + n], mask[i, start:start + n], legendres)
-                array[i, start:start + n] = bolo
+                    input_array[i, start:start + n], mask[i, start:start + n], legendres)
+                input_array[i, start:start + n] = bolo
                 coeff_out[i, s, :] = coeff
     return coeff_out
