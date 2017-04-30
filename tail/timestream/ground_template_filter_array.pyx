@@ -68,9 +68,9 @@ cdef inline _ground_filter(
             # bins_hit[nBin * i + k] += mask[i, j]
 
         ## average signal
-        for j in range(nPix):
-            if bins_hit[nBin * i + j] != 0:
-                bins_signal[nBin * i + j] /= bins_hit[nBin * i + j]
+        for k in range(nPix):
+            if bins_hit[nBin * i + k] != 0:
+                bins_signal[nBin * i + k] /= bins_hit[nBin * i + k]
 
         # substraction
         if groundmap:
@@ -87,14 +87,78 @@ cdef inline _ground_filter(
 @cython.cdivision(True)
 cdef inline _ground_filter_lr(
         double[:, :] input_array,
+        double[:] az,
         np.ndarray[np.uint8_t, cast=True, ndim=2] mask,
         bool groundmap,
         int num_threads,
         int nCh,
         int nTime,
-        int nBin,
+        int nPix,
         Py_ssize_t* pointing):
-    pass
+    cdef Py_ssize_t i, j, k
+    # the signal
+    # cdef double[:, :] bins_signal = np.zeros((nCh, nBin))
+    # last bin correspond to the az_max pixel, just in case it hasn't been masked
+    cdef int nBin = nPix + 1
+    cdef int size = nCh * nBin
+    cdef double* bins_signal_l = <double*>calloc(size, sizeof(double))
+    cdef double* bins_signal_r = <double*>calloc(size, sizeof(double))
+    # number of hits of signals
+    # the use of machine epsilon is to avoid special casing 0
+    cdef int* bins_hit_l = <int*>calloc(size, sizeof(double))
+    cdef int* bins_hit_r = <int*>calloc(size, sizeof(double))
+    # is the input_array right moving?
+    cdef bool* right = <bool*>calloc(nTime, sizeof(bool))
+
+    # detect left vs. right
+    for j in range(nTime - 1):
+        right[j] = az[j + 1] > az[j]
+    # the last one does not have a diff.
+    right[nTime - 1] = right[nTime - 2]
+
+    for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
+        # calculate ground template
+        ## add total signal and no. of hits
+        for j in range(nTime):
+            if mask[i, j]:
+                k = pointing[j]
+                if right[j]:
+                    bins_signal_r[nBin * i + k] += input_array[i, j]
+                    bins_hit_r[nBin * i + k] += 1
+                else:
+                    bins_signal_l[nBin * i + k] += input_array[i, j]
+                    bins_hit_l[nBin * i + k] += 1
+            # the following should be better for SIMD, but is actually slower
+            # k = pointing[j]
+            # bins_signal[nBin * i + k] += input_array[i, j] * mask[i, j]
+            # bins_hit[nBin * i + k] += mask[i, j]
+
+        ## average signal
+        for k in range(nPix):
+            if bins_hit_l[nBin * i + k] != 0:
+                bins_signal_l[nBin * i + k] /= bins_hit_l[nBin * i + k]
+        for k in range(nPix):
+            if bins_hit_r[nBin * i + k] != 0:
+                bins_signal_r[nBin * i + k] /= bins_hit_r[nBin * i + k]
+
+        # substraction
+        if groundmap:
+            for j in range(nTime):
+                if right[j]:
+                    input_array[i, j] = bins_signal_r[nBin * i + pointing[j]]
+                else:
+                    input_array[i, j] = bins_signal_l[nBin * i + pointing[j]]
+        else:
+            for j in range(nTime):
+                if right[j]:
+                    input_array[i, j] -= bins_signal_r[nBin * i + pointing[j]]
+                else:
+                    input_array[i, j] -= bins_signal_l[nBin * i + pointing[j]]
+    free(bins_signal_l)
+    free(bins_signal_r)
+    free(bins_hit_l)
+    free(bins_hit_r)
+    free(right)
 
 
 @cython.boundscheck(False)
@@ -160,6 +224,7 @@ def ground_template_filter_array(
     if lr:
         _ground_filter_lr(
                 input_array,
+                az,
                 mask,
                 groundmap,
                 num_threads,
