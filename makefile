@@ -1,28 +1,42 @@
-SHELL := /usr/bin/env bash
+SHELL = /usr/bin/env bash
 
 # configure engine
-python := python
-pip := pip
 CC = icc
+python = python
+pip = pip
 
-# Main Targets ########################################################################################################################################################################################
+PYX = $(wildcard */*/*.pyx)
+cythonC = $(patsubst %.pyx,%.c,$(PYX))
+cythonSO = $(patsubst %.pyx,%.so,$(PYX))
+cythonReport = $(patsubst %.pyx,%.html,$(PYX))
 
-cython:
-	CC=$(CC) python setup.py build_ext --inplace
+# Main Targets #################################################################
+
+all: cython report
+
+cython: $(cythonSO)
+
+report: $(cythonReport)
+
+clean:
+	rm -f .coverage $(cythonC) $(cythonReport)
+	rm -rf htmlcov tail.egg-info build
+	find . -type f -name "*.py[co]" -delete -or -type d -name "__pycache__" -delete -or -type f -name "*.so" -delete
 
 test: pytest pep8
 	coverage html
 testFull: pytest pep8 pylint
 	coverage html
 
-clean:
-	rm -f .coverage
-	rm -rf htmlcov tail.egg-info build
-	find . -type f -name "*.py[co]" -delete -or -type d -name "__pycache__" -delete -or -type f -name "*.c" -delete -or -type f -name "*.so" -delete
+# Making dependancies ##########################################################
 
-# Making dependancies #################################################################################################################################################################################
+%.c %.html: %.pyx
+	cython -a $<
 
-# maintenance #########################################################################################################################################################################################
+$(cythonSO): $(cythonC)
+	CC=$(CC) $(python) setup.py build_ext --inplace
+
+# maintenance ##################################################################
 
 # Deploy to PyPI
 ## by Travis, properly git tagged
