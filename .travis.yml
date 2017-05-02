@@ -31,6 +31,7 @@ install:
   - if [[ "$TRAVIS_PYTHON_VERSION" != "pypy3" ]]; then pip install -U pip; fi
   - pip install -r requirements.txt
   - pip install -r tests/requirements.txt
+  - make
 before_script:
   # pasteurize for py2 only, except setup.py & tail/version.py
   # - |
