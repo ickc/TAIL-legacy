@@ -108,7 +108,8 @@ def poly_filter_array(
                     mask[i, start:start + n] = 0  # flag it
                     # remove this region from actual data as well
                     mask_remove[i, start:start + n] = 0
-                    print('Not enough points (%d) to build legendre of order (%d)' % (n, polyorder))
+                    print('Not enough points (%d) to build legendre of order (%d)' % (
+                        n, polyorder))
                 continue
             goodhits = np.sum(mask[:, start:start + n], axis=1)
             if n != nold:

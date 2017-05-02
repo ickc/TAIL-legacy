@@ -1,7 +1,8 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
-EPSILON = 7./3 - 4./3 - 1
+EPSILON = 7. / 3 - 4. / 3 - 1
+
 
 def assertIdenticalList(list1, list2):
     for i, list1i in enumerate(list1):

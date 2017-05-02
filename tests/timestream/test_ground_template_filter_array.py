@@ -7,6 +7,7 @@ import numpy as np
 import sys
 py2 = sys.version_info[0] == 2
 
+
 def simulate_ground_input(nCh, nTime, nPix):
     az_time_width = 400
     az_min = 3.5
@@ -15,14 +16,14 @@ def simulate_ground_input(nCh, nTime, nPix):
 
     input_array = (np.random.rand(nCh, nTime) - 0.5) * 0.2
 
-    az = np.array([(az_range * (1 - 
-        abs(i % (2 * az_time_width) / float(az_time_width) - 1)) + az_min
-        ) for i in range(nTime)])
+    az = np.array([(az_range * (1 -
+                                abs(i % (2 * az_time_width) / float(az_time_width) - 1)) + az_min
+                    ) for i in range(nTime)])
 
     mask_half_width = 50
     mask = np.repeat([[(i % az_time_width < mask_half_width
-             or i % az_time_width > az_time_width - mask_half_width
-            ) for i in range(nTime)]], nCh, axis=0)
+                        or i % az_time_width > az_time_width - mask_half_width
+                        ) for i in range(nTime)]], nCh, axis=0)
 
     pixel_size = az_range / nPix
 
