@@ -52,7 +52,7 @@ cdef inline prep_legendre(int n, int polyorder):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline filter_slice_legendre_qr_mask_precalc(np.float64_t[:, :] bolo, np.float64_t[:, :] mask, legendres):
+cdef inline filter_slice_legendre_qr_mask_precalc(np.float64_t[:] bolo, np.float64_t[:] mask, legendres):
     cdef int m = legendres.shape[1]
     cdef int n = legendres.shape[0]
     cdef np.float64_t[:, :] l2, q, r, rinv, p, coeff, out
@@ -75,7 +75,8 @@ def poly_filter_array(
         scan_list,
         int ibegin,
         int polyorder,
-        double minfrac=.75):
+        double minfrac=.75,
+        int num_threads=4):
     """
     Parameters
     ----------
@@ -109,7 +110,7 @@ def poly_filter_array(
     cdef int nold = -1
     # do nothing
     if polyorder < 0:
-        return input_array
+        return None
 
     cdef Py_ssize_t nCh, nt, ns
     nch = input_array.shape[0]
@@ -123,18 +124,20 @@ def poly_filter_array(
     cdef Py_ssize_t s, i, j
     cdef Py_ssize_t istart, n, start
 
+    cdef double mean
+    cdef np.int64_t[:] goodhits
+
     # remove mean
     if polyorder == 0:
         for s in range(ns):
             istart = scan_view[s][0]
             n = scan_view[s][1]
             start = istart - ibegin
-#            input_array[:,start:start+n] -= np.tile(np.mean(input_array[:,start:start+n]*mask[:,start:start+n],axis=1).reshape(nch,1),[1,n])
             for i in range(nch):
                 if np.any(mask[i, start:start + n]):
                     mean = np.average(
                         input_array[i, start:start + n], weights=mask[i, start:start + n])
-                    for j in range(start, start + n):
+                    for j in prange(start, start + n, nogil=True, schedule='guided', num_threads=num_threads):
                         input_array[i, j] -= mean
                     coeff_out[i, s, 0] = mean
 
@@ -145,14 +148,13 @@ def poly_filter_array(
             n = scan_view[s][1]
             start = istart - ibegin
             if n <= polyorder:  # otherwise cannot compute legendre polynomials
-                for i in range(nch):
-                    for j in range(start, start + n):
+                for i in prange(nch, nogil=True, schedule='guided', num_threads=num_threads):
+                    for j in prange(start, start + n):
                         mask[i, j] = False  # flag it
                     # remove this region from actual data as well
-                    for j in range(start, start + n):
+                    for j in prange(start, start + n):
                         mask_remove[i, j] = False
-#                     with gil:
-                    print('Not enough points (%d) to build legendre of order (%d)' % (n, polyorder))
+                print('Not enough points (%d) to build legendre of order (%d)' % (n, polyorder))
                 continue
             goodhits = np.sum(mask[:, start:start + n], axis=1)
             if n != nold:
@@ -164,11 +166,9 @@ def poly_filter_array(
             for i in range(nch):
                 if goodhits[i] != n:
                     continue  # skip for now
-                # filter_slice_legendre_qr_nomask_precalc_inplace(input_array[i,start:start+n],legendres,rinvqt)
-                bolo = input_array[i, start:start + n]
-                coeff = np.dot(rinvqt, bolo)
+                coeff = np.dot(rinvqt, input_array[i, start:start + n])
                 coeff_out[i, s, :] = coeff
-                bolo -= np.dot(legendres, coeff)
+                input_array[i, start:start + n] -= np.dot(legendres, coeff)
 #                input_array[i,start:start+n] = filter_slice_legendre_qr_nomask_precalc(
 #                    input_array[i,start:start+n], legendres,rinv,qt)
 
@@ -176,12 +176,11 @@ def poly_filter_array(
                 if goodhits[i] == n:
                     continue  # skip since dealt with above
                 if goodhits[i] < minfrac * n:  # not enough points
-                    mask[i, start:start + n] = 0  # flag it
+                    mask[i, start:start + n] = False  # flag it
                     # remove this region from actual data as well
-                    mask_remove[i, start:start + n] = 0
+                    mask_remove[i, start:start + n] = False
                     continue
-                bolo, coeff = filter_slice_legendre_qr_mask_precalc(
+                input_array[i, start:start + n], coeff = filter_slice_legendre_qr_mask_precalc(
                     input_array[i, start:start + n], mask[i, start:start + n], legendres)
-                input_array[i, start:start + n] = bolo
                 coeff_out[i, s, :] = coeff
     return coeff_out
