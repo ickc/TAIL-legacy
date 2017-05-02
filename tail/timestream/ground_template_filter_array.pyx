@@ -212,7 +212,7 @@ def ground_template_filter_array(
     # beaware of the last bin that will always be masked away because it's a turning point
     cdef Py_ssize_t* pointing = <Py_ssize_t*>malloc(nTime * sizeof(Py_ssize_t))
     cdef double nPix_per_range = nPix / az_range
-    for i in prange(nTime, nogil=True, schedule='guided', num_threads=num_threads, num_threads=num_threads):
+    for i in prange(nTime, nogil=True, schedule='guided', num_threads=num_threads):
         # possible values: [0, 1, ..., nPix]
         pointing[i] = <Py_ssize_t>((az[i] - az_min) * nPix_per_range)
 
