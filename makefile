@@ -1,7 +1,8 @@
 SHELL = /usr/bin/env bash
 
 # configure engine
-CC = icpc
+CC = icc
+CXX = icpc
 python = python
 pip = pip
 
@@ -34,7 +35,7 @@ testFull: pytest pep8 pylint
 	cython -a $<
 
 $(cythonSO): $(cythonC)
-	CC=$(CC) $(python) setup.py build_ext --inplace
+	CC=$(CC) CXX=$(CXX) $(python) setup.py build_ext --inplace
 
 # maintenance ##################################################################
 
