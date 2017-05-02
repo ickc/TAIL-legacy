@@ -1,39 +1,86 @@
 import numpy as np
+import weave
 
 
-def simple_map_prepare(nch, npix):
-    signal_map = np.zeros((nch, npix))
-    hits_map = np.zeros((nch, npix), dtype=np.int32)
+def simple_map_prepare(nCh, nPix):
+    """
+    Prepare a simple map.
+
+    Parameters
+    ----------
+    nCh: int
+        Number of channels
+    nPix: int
+        Number of pixels
+
+    Returns
+    -------
+    signal_map: ndarray
+        an array of length nCh, where each entry is a length-nPix zero array.
+    hits_map: ndarray
+        same as above with dtype int32
+    """
+    signal_map = np.zeros((nCh, nPix))
+    hits_map = np.zeros((nCh, nPix), dtype=np.int32)
     return signal_map, hits_map
-
-# simple_map_python
 
 
 def simple_map(signal_map, hits_map, pointing, mask, array):
+    ''' Map timestream into a signal map '''
     nch, nt = array.shape
     npix = signal_map.shape[1]
+    assert signal_map.dtype == array.dtype
+    assert mask.dtype == np.bool
 
-    for i in range(nch):
-        for j in range(nt):
-            if mask[i, j]:
-                signal_map[i, pointing[j]] += array[i, j]
-                hits_map[i, pointing[j]] += 1
-    ok = hits_map > 0
-    signal_map[ok] /= hits_map[ok]
+    c_code = '''
+	int ch,t;
+	int pix;
+	for(ch=0;ch<nch;ch++) {
+		for(t=0;t<nt;t++) {
+			pix = pointing(t);
+			signal_map(ch,pix) += array(ch,t)*mask(ch,t);
+			hits_map(ch,pix) += mask(ch,t);
+		}
+	}
 
-# simple_scan_subtract_python
+	for(ch=0;ch<nch;ch++) {
+		for(pix=0;pix<npix;pix++) {
+			if(hits_map(ch,pix) > 0) {
+				signal_map(ch,pix) /= hits_map(ch,pix);
+			}
+		}
+	}
+	'''
+
+    weave.inline(c_code, ['array', 'pointing', 'mask', 'signal_map', 'hits_map',
+                          'nch', 'nt', 'npix'], type_converters=weave.converters.blitz)
 
 
 def simple_scan_subtract(signal_map, pointing, array):
+    ''' Directly subtract signal map from array '''
     nch, nt = array.shape
     npix = signal_map.shape[1]
-    for i in range(nch):
-        for j in range(nt):
-            array[i, j] -= signal_map[i, pointing[j]]
+
+    assert np.max(pointing) < npix
+    assert np.min(pointing) >= 0
+
+    c_code = '''
+	int ch,t;
+	int pix;
+	for(ch=0;ch<nch;ch++) {
+		for(t=0;t<nt;t++) {
+			pix = pointing(t);
+			array(ch,t) -= signal_map(ch,pix);
+		}
+	}
+	'''
+
+    weave.inline(c_code, ['array', 'pointing', 'npix', 'nt', 'nch',
+                          'signal_map'], type_converters=weave.converters.blitz)
 
 
 def ground_template_filter_array(
-        array,
+        input_array,
         az,
         mask,
         pixel_size,
@@ -43,57 +90,79 @@ def ground_template_filter_array(
     '''
     Remove ground template from array timestreams
 
-    If groundmap = True, then do the exact opposite, and remove component from timestream that isn't fixed with the ground
-
-    filtmask means to compute the filter template with that subset of the data, operation is applied to data specified by mask
-
-    In largepatch filtmask refers to wafermask_chan_filt
+    Parameters
+    ----------
+    input_array: array_like
+        shape: (number of channels, number of time steps)
+        Input timestream, mutated inplace.
+    az: array_like
+        shape: input_array[0]
+        The azimuth of the timestream.
+    mask: array_like
+        shape: input_array
+        dtype: bool
+    pixel_size: float
+    groundmap: bool
+        If groundmap = True, then do the exact opposite,
+        and remove component from timestream that isn't fixed with the ground
+    lr: bool
+        If true, ground substraction done separately on left and right moving scans
+    filtmask: array_like
+        shape: input_array
+        dtype: bool
+        filtmask means to compute the filter template with that subset of the data,
+        operation is applied to data specified by mask
+        In largepatch filtmask refers to wafermask_chan_filt
     '''
-    nch, nt = array.shape
-    minaz = np.min(az)
-    maxaz = np.max(az)
-
-    assert mask.shape == array.shape
-    assert az.size == nt
-    assert 3 * pixel_size < (maxaz - minaz)
-
+    # initialize
+    nCh, nTime = input_array.shape
+    az_min = np.min(az)
+    az_max = np.max(az)
+    az_range = az_max - az_min
     if filtmask is None:
         filtmask = mask
 
-    npix = int(np.round((maxaz - minaz) / pixel_size))
-    pixel_size = (maxaz - minaz) / npix
+    assert input_array.shape == mask.shape == filtmask.shape
+    assert az.size == nTime
 
-    # bin at npix is used as a junk pixel
-    signal_map, hits_map = simple_map_prepare(nch, npix + 1)
+    # Calculate number of pixels given the pixel size
+    nPix = int(np.round(az_range / pixel_size))
+    assert nPix > 3
+    # recalculate pixel_size (because nPix is int)
+    pixel_size = az_range / nPix
 
-    pointing = np.int_(np.floor(npix * (az - minaz) / (maxaz - minaz)))
-    # One point with az = maxaz will end up one bin too far left
-    pointing[pointing == npix] = npix - 1
-    assert np.max(pointing) < npix
-    assert np.min(pointing) >= 0
+    # bin at nPix is used as a junk pixel
+    signal_map, hits_map = simple_map_prepare(nCh, nPix + 1)
+
+    # get pointing
+    pointing = np.int_(np.floor(nPix * (az - az_min) / az_range))
+    # One point with az = az_max will end up one bin too far left
+    pointing[pointing == nPix] = nPix - 1
 
     if groundmap:
-        array_in = array.copy()
+        array_in = input_array.copy()
 
     if lr:
         vaz = np.gradient(az)
+        # select left / right moving timestream
         l = vaz >= 0
         r = vaz < 0
-        lp = pointing.copy()
-        lp[~l] = npix
-        rp = pointing.copy()
-        rp[~r] = npix
-        simple_map(signal_map, hits_map, lp, filtmask, array)
-        signal_map[:, npix] = 0
-        simple_scan_subtract(signal_map, lp, array)
+        pointingL = pointing.copy()
+        pointingL[~l] = nPix
+        pointingR = pointing.copy()
+        pointingR[~r] = nPix
+
+        simple_map(signal_map, hits_map, pointingL, filtmask, input_array)
+        signal_map[:, nPix] = 0
+        simple_scan_subtract(signal_map, pointingL, input_array)
         signal_map[:] = 0
         hits_map[:] = 0
-        simple_map(signal_map, hits_map, rp, filtmask, array)
-        signal_map[:, npix] = 0
-        simple_scan_subtract(signal_map, rp, array)
+        simple_map(signal_map, hits_map, pointingR, filtmask, input_array)
+        signal_map[:, nPix] = 0
+        simple_scan_subtract(signal_map, pointingR, input_array)
     else:
-        simple_map(signal_map, hits_map, pointing, filtmask, array)
-        simple_scan_subtract(signal_map, pointing, array)
+        simple_map(signal_map, hits_map, pointing, filtmask, input_array)
+        simple_scan_subtract(signal_map, pointing, input_array)
 
     if groundmap:
-        array[:, :] = array_in - array
+        input_array[:, :] = array_in - input_array
