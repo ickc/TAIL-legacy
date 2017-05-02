@@ -6,3 +6,4 @@ pytest-cov
 coverage
 coveralls
 future
+weave
