@@ -15,8 +15,10 @@ extensions = [
             '-pipe',
             '-march=native',
             '-mtune=native',
+            '-std=c++14',
         ],
-        extra_link_args=['-fopenmp']),
+        extra_link_args=['-fopenmp'],
+    ),
 ]
 
 setup(
