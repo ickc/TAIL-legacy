@@ -8,7 +8,6 @@ from cython.parallel import parallel, prange
 from libc.math cimport round
 from libc.stdlib cimport malloc, calloc, free
 from libcpp cimport bool
-from libc.string cimport memset
 
 from numpy.math cimport INFINITY
 
