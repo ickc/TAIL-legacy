@@ -25,3 +25,8 @@ htmlcov/
 
 # iPython
 .ipynb_checkpoints/
+
+*.png
+*.svg
+*.pdf
+*.txt
