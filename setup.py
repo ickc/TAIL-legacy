@@ -18,6 +18,7 @@ extensions = [
         '-std=c++14',
     ],
         extra_link_args=['-fopenmp'],
+        language='c++',
     ),
 ]
 

@@ -13,6 +13,7 @@ pantable.egg-info/
 # setup.py & cython
 build/
 *.c
+*.cpp
 *.so
 *.html
 
