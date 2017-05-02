@@ -1,7 +1,7 @@
 SHELL = /usr/bin/env bash
 
 # configure engine
-CC = icc
+CC = icpc
 python = python
 pip = pip
 
