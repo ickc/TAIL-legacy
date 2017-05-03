@@ -15,4 +15,5 @@ def circular_mask(n, r):
 def test_get_boundary():
     mask = circular_mask(6, 2)
     boundary = get_boundary(mask)
-    assert boundary == [(2, 2), (3, 2), (4, 2), (4, 3), (4, 4), (3, 4), (2, 4), (2, 3)]
+    # "unpacked" version: [(2, 2), (3, 2), (4, 2), (4, 3), (4, 4), (3, 4), (2, 4), (2, 3)]
+    np.testing.assert_array_equal(boundary, np.array([14, 20, 26, 27, 28, 22, 16, 15]))
