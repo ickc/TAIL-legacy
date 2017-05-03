@@ -7,54 +7,62 @@ from libc.stdlib cimport malloc, calloc, free
 
 from libcpp cimport bool
 
-class Turtle(object):
-    def __init__(self, i, j):
+cdef class Turtle(object):
+    cdef Py_ssize_t x, y, v_x, v_y
+    def __cinit__(self, Py_ssize_t i, Py_ssize_t j):
         self.x = i
         self.y = j
         self.v_x = 0
         self.v_y = 1
-    def walk(self):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void walk(self):
         self.x += self.v_x
         self.y += self.v_y
-    def turn_left(self):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void turn_left(self):
         # (x + yi) * -i = y - xi
-        v_x = self.v_x
+        cdef Py_ssize_t v_x = self.v_x
         self.v_x = self.v_y
         self.v_y = -v_x
-    def turn_right(self):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void turn_right(self):
         # (x + yi) * i = -y + xi
-        v_x = self.v_x
+        cdef Py_ssize_t v_x = self.v_x
         self.v_x = -self.v_y
         self.v_y = v_x
-    def get_x(self):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef Py_ssize_t get_x(self):
         return self.x
-    def get_y(self):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef Py_ssize_t get_y(self):
         return self.y
 
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef get_start(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
+@cython.cdivision(True)
+def get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
+    cdef Py_ssize_t m, n, i, j, ij, start, x, y, loc
+
     m = mask.shape[0]
     n = mask.shape[1]
-    for i in range(m):
-        for j in range(n):
-            if mask[i, j]:
-                return complex(i, j)
+    for ij in range(m * n):
+        i = ij // m
+        j = ij % m
+        if mask[i, j]:
+            start = ij
+            break
 
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def get_boundary(mask, debug=False, stop=10):
-    start = get_start(mask)
     boundary_list = [start]
     boundary_set = {start}
-    turtle = Turtle(start.real, start.imag)
-    if debug:
-        counter = 0
+    turtle = Turtle(start // m, start % m)
     while True:
-        if debug:
-            print(turtle.get_loc())
         x = turtle.get_x()
         y = turtle.get_y()
         if mask[x, y]:
@@ -65,14 +73,11 @@ def get_boundary(mask, debug=False, stop=10):
         x = turtle.get_x()
         y = turtle.get_y()
         if mask[x, y]:
-            loc = complex(x, y)
+            loc = x * m + y
             if loc not in boundary_set:
                 boundary_list.append(loc)
                 boundary_set.add(loc)
-        if debug:
-            counter += 1
-            if counter == stop:
-                break
         if loc == start:
             break
+    boundary_list = [(ij // m, ij % m) for ij in boundary_list]
     return boundary_list

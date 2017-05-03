@@ -14,5 +14,5 @@ def circular_mask(n, r):
 
 def test_get_boundary():
     mask = circular_mask(6, 2)
-    boundary = get_boundary(mask, debug=False)
-    assert boundary == [(2+2j), (3+2j), (4+2j), (4+3j), (4+4j), (3+4j), (2+4j), (2+3j)]
+    boundary = get_boundary(mask)
+    assert boundary == [(2, 2), (3, 2), (4, 2), (4, 3), (4, 4), (3, 4), (2, 4), (2, 3)]
