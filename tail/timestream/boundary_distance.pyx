@@ -34,26 +34,27 @@ cdef class Turtle(object):
     cdef Py_ssize_t get_y(self):
         return self.y
 
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline Py_ssize_t _get_start(np.uint8_t* mask, Py_ssize_t mn):
+    cdef Py_ssize_t ij
+    for ij in range(mn):
+        if mask[ij]:
+            return ij
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
-    cdef Py_ssize_t m, n, i, j, ij, start, x, y, loc
+cdef vector[Py_ssize_t] _get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
+    cdef Py_ssize_t m, n, start, x, y, loc
     cdef vector[Py_ssize_t] boundary
 
     m = mask.shape[0]
     n = mask.shape[1]
-    for ij in range(m * n):
-        i = ij // m
-        j = ij % m
-        if mask[i, j]:
-            start = ij
-            break
+    start = _get_start(&mask[0, 0], m * n)
 
-    boundary.push_back(start)
     turtle = Turtle(start // m, start % m)
+    boundary.push_back(start)
     while True:
         turtle.walk()
         x = turtle.get_x()
@@ -67,4 +68,8 @@ def get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
             turtle.turn_left()
         else:
             turtle.turn_right()
+    return boundary
+
+def get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
+    cdef vector[Py_ssize_t] boundary = _get_boundary(mask)
     return np.asarray(boundary)
