@@ -11,22 +11,24 @@ from libcpp cimport bool
 
 from numpy.math cimport INFINITY
 
+cdef double EPSILON = 7. / 3 - 4. / 3 - 1
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef inline double max(double[:] x):
     cdef double max = -INFINITY
+    # SIMD checked
     for i in range(x.shape[0]):
-        if x[i] > max:
-            max = x[i]
+        max = x[i] if x[i] > max else max
     return max
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef inline double min(double[:] x):
     cdef double min = INFINITY
+    # SIMD checked
     for i in range(x.shape[0]):
-        if x[i] < min:
-            min = x[i]
+        min = x[i] if x[i] < min else min
     return min
 
 
@@ -50,8 +52,11 @@ cdef inline _ground_filter(
     cdef int size = nCh * nBin
     cdef double* bins_signal = <double*>calloc(size, sizeof(double))
     # number of hits of signals
-    # the use of machine epsilon is to avoid special casing 0
-    cdef int* bins_hit = <int*>calloc(size, sizeof(double))
+    # the use of machine epsilon is to avoid special casing 0 so that SIMD is triggered
+    cdef double* bins_hit = <double*>malloc(size * sizeof(double))
+    # SIMD checked
+    for i in range(size):
+        bins_hit[i] = EPSILON
 
     for i in prange(nCh, nogil=True, schedule='guided', num_threads=num_threads):
         # calculate ground template
@@ -61,21 +66,26 @@ cdef inline _ground_filter(
                 k = pointing[j]
                 bins_signal[nBin * i + k] += input_array[i, j]
                 bins_hit[nBin * i + k] += 1
-            # the following should be better for SIMD, but is actually slower
+            # the following allows SIMD. But Intel vectorization report said it would be inefficient
+            # TODO: try again on KNL
             # k = pointing[j]
             # bins_signal[nBin * i + k] += input_array[i, j] * mask[i, j]
             # bins_hit[nBin * i + k] += mask[i, j]
 
         ## average signal
+        ## SIMD checked
         for k in range(nPix):
-            if bins_hit[nBin * i + k] != 0:
-                bins_signal[nBin * i + k] /= bins_hit[nBin * i + k]
+            # won't be 0 since it is initialized as EPSILON
+            # if bins_hit[nBin * i + k] != 0:
+            bins_signal[nBin * i + k] /= bins_hit[nBin * i + k]
 
         # substraction
         if groundmap:
+            # no SIMD: report says vectorization here is inefficient
             for j in range(nTime):
                 input_array[i, j] = bins_signal[nBin * i + pointing[j]]
         else:
+            # no SIMD: report says vectorization here is inefficient
             for j in range(nTime):
                 input_array[i, j] -= bins_signal[nBin * i + pointing[j]]
     free(bins_signal)
@@ -104,13 +114,22 @@ cdef inline _ground_filter_lr(
     cdef double* bins_signal_r = <double*>calloc(size, sizeof(double))
     # number of hits of signals
     # the use of machine epsilon is to avoid special casing 0
-    cdef int* bins_hit_l = <int*>calloc(size, sizeof(double))
-    cdef int* bins_hit_r = <int*>calloc(size, sizeof(double))
+    cdef double* bins_hit_l = <double*>malloc(size * sizeof(double))
+    cdef double* bins_hit_r = <double*>malloc(size * sizeof(double))
+    # SIMD checked
+    for i in range(size):
+        bins_hit_l[i] = EPSILON
+    for i in range(size):
+        bins_hit_r[i] = EPSILON
     # is the input_array right moving?
     cdef bool* isMovingRight = <bool*>calloc(nTime, sizeof(bool))
 
     # detect left vs. right
-    for j in prange(nTime - 1, nogil=True, schedule='guided', num_threads=num_threads):
+    # IO bound, OpenMP not used
+    # SIMD failed because of vector dependence
+    # If this were in C, add the following line...
+    #pragma ivdep
+    for j in range(nTime - 1):
         isMovingRight[j] = az[j + 1] > az[j]
     # the last one does not have a diff.
     isMovingRight[nTime - 1] = isMovingRight[nTime - 2]
@@ -129,26 +148,27 @@ cdef inline _ground_filter_lr(
                     bins_hit_l[nBin * i + k] += 1
 
         ## average signal
+        ## SIMD checked
         for k in range(nPix):
-            if bins_hit_l[nBin * i + k] != 0:
-                bins_signal_l[nBin * i + k] /= bins_hit_l[nBin * i + k]
+            # won't be 0 since it is initialized as EPSILON
+            # if bins_hit_l[nBin * i + k] != 0:
+            bins_signal_l[nBin * i + k] /= bins_hit_l[nBin * i + k]
         for k in range(nPix):
-            if bins_hit_r[nBin * i + k] != 0:
-                bins_signal_r[nBin * i + k] /= bins_hit_r[nBin * i + k]
+            # won't be 0 since it is initialized as EPSILON
+            # if bins_hit_r[nBin * i + k] != 0:
+            bins_signal_r[nBin * i + k] /= bins_hit_r[nBin * i + k]
 
         # substraction
         if groundmap:
+            # no SIMD: report says vectorization here is inefficient
             for j in range(nTime):
-                if isMovingRight[j]:
-                    input_array[i, j] = bins_signal_r[nBin * i + pointing[j]]
-                else:
-                    input_array[i, j] = bins_signal_l[nBin * i + pointing[j]]
+                input_array[i, j] = bins_signal_r[nBin * i + pointing[j]] \
+                    if isMovingRight[j] else bins_signal_l[nBin * i + pointing[j]]
         else:
+            # no SIMD: report says vectorization here is inefficient
             for j in range(nTime):
-                if isMovingRight[j]:
-                    input_array[i, j] -= bins_signal_r[nBin * i + pointing[j]]
-                else:
-                    input_array[i, j] -= bins_signal_l[nBin * i + pointing[j]]
+                input_array[i, j] -= bins_signal_r[nBin * i + pointing[j]] \
+                    if isMovingRight[j] else bins_signal_l[nBin * i + pointing[j]]
     free(bins_signal_l)
     free(bins_signal_r)
     free(bins_hit_l)
@@ -212,7 +232,8 @@ def ground_template_filter_array(
     # beaware of the last bin that will always be masked away because it's a turning point
     cdef Py_ssize_t* pointing = <Py_ssize_t*>malloc(nTime * sizeof(Py_ssize_t))
     cdef double nPix_per_range = nPix / az_range
-    for i in prange(nTime, nogil=True, schedule='guided', num_threads=num_threads):
+    # IO bound, OpenMP not used
+    for i in range(nTime):
         # possible values: [0, 1, ..., nPix]
         pointing[i] = <Py_ssize_t>((az[i] - az_min) * nPix_per_range)
 
