@@ -14,11 +14,9 @@ cythonReport = $(patsubst %.pyx,%.html,$(PYX))
 
 # Main Targets #################################################################
 
-all: cython report
+all: cython
 
 cython: $(cythonSO)
-
-report: $(cythonReport)
 
 clean:
 	rm -f .coverage $(cythonC) $(cythonReport) $(cythonCXX)
@@ -32,10 +30,10 @@ testFull: pytest pep8 pylint
 
 # Making dependancies ##########################################################
 
-%.c %.html: %.pyx
+%.cpp %.html: %.pyx
 	cython -a $<
 
-$(cythonSO): $(cythonC)
+$(cythonSO): $(PYX)
 	CC=$(CC) CXX=$(CXX) $(python) setup.py build_ext --inplace
 
 # maintenance ##################################################################
