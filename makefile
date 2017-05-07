@@ -8,6 +8,7 @@ pip = pip
 
 PYX = $(wildcard */*/*.pyx)
 cythonC = $(patsubst %.pyx,%.c,$(PYX))
+cythonCXX = $(patsubst %.pyx,%.cpp,$(PYX))
 cythonSO = $(patsubst %.pyx,%.so,$(PYX))
 cythonReport = $(patsubst %.pyx,%.html,$(PYX))
 
@@ -20,7 +21,7 @@ cython: $(cythonSO)
 report: $(cythonReport)
 
 clean:
-	rm -f .coverage $(cythonC) $(cythonReport)
+	rm -f .coverage $(cythonC) $(cythonReport) $(cythonCXX)
 	rm -rf htmlcov tail.egg-info build
 	find . -type f -name "*.py[co]" -delete -or -type d -name "__pycache__" -delete -or -type f -name "*.so" -delete
 
