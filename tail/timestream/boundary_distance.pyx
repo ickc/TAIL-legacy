@@ -20,6 +20,13 @@ cdef inline Py_ssize_t _get_start(np.uint8_t* mask, Py_ssize_t mn):
             return ij
 
 cdef class Coordinate(object):
+    """
+    A class that handles basic coordinates operation
+    The coordinate types are Py_ssize_t
+    Note that from the indicies used in 2D array,
+    the 1st index points down and 2nd index points right,
+    unlike how Cartesian coordinates are usually drawn.
+    """
     cdef Py_ssize_t x, y
     def __cinit__(Coordinate self, Py_ssize_t i, Py_ssize_t j):
         self.x = i
@@ -30,15 +37,15 @@ cdef class Coordinate(object):
     # cdef bool isEqual(Coordinate self, Coordinate r2):
     #     return (self.x == r2.x and self.y == r2.y)
     cdef void rotate_left(Coordinate self):
-        # (x + yi) * -i = y - xi
-        cdef Py_ssize_t x = self.x
-        self.x = self.y
-        self.y = -x
-    cdef void rotate_right(Coordinate self):
         # (x + yi) * i = -y + xi
         cdef Py_ssize_t x = self.x
         self.x = -self.y
         self.y = x
+    cdef void rotate_right(Coordinate self):
+        # (x + yi) * -i = y - xi
+        cdef Py_ssize_t x = self.x
+        self.x = self.y
+        self.y = -x
     cdef Py_ssize_t get_x(Coordinate self):
         return self.x
     cdef Py_ssize_t get_y(Coordinate self):
@@ -48,7 +55,7 @@ cdef class Turtle(object):
     cdef Coordinate r, v
     def __cinit__(Turtle self, Coordinate c2):
         self.r = c2
-        self.v = Coordinate(1, 0)
+        self.v = Coordinate(0, 1)
     cdef void walk(Turtle self):
         self.r.iadd(self.v)
     cdef void rotate_left(Turtle self):
