@@ -3,11 +3,15 @@ cimport numpy as np
 
 cimport cython
 
-# from libc.stdlib cimport malloc, calloc, free
+from cython.parallel import parallel, prange
+
+from libc.stdlib cimport malloc, calloc, free
+
+from libc.math cimport sqrt
 
 from libcpp.vector cimport vector
 
-# from libcpp cimport bool
+from libcpp cimport bool
 
 # from numpy.math cimport INFINITY
 
@@ -72,7 +76,7 @@ cdef class Turtle(object):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef vector[Py_ssize_t] _get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
+cdef vector[Py_ssize_t] get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
     cdef Py_ssize_t m, n, start, x, y, loc
     cdef vector[Py_ssize_t] boundary
 
@@ -97,30 +101,75 @@ cdef vector[Py_ssize_t] _get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] 
             turtle.rotate_right()
     return boundary
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def get_box(vector[Py_ssize_t] boundary, Py_ssize_t m, Py_ssize_t n):
-#     Py_ssize_t i_min =
-#     for k in boundary:
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
-    cdef Py_ssize_t i
-    cdef Py_ssize_t m = mask.shape[0]
+def boundary_distance(np.ndarray[np.uint8_t, cast=True, ndim=2] mask, int num_threads=4, bool debug=False):
 
-    cdef vector[Py_ssize_t] boundary = _get_boundary(mask)
+    cdef Py_ssize_t i, j, k, x, y, x_min, x_max, y_min, y_max
+
+    cdef Py_ssize_t m = mask.shape[0]
+    cdef Py_ssize_t n = mask.shape[1]
+
+    x_min = m
+    y_min = n
+    x_max = 0
+    y_max = 0
+
+    cdef vector[Py_ssize_t] boundary = get_boundary(mask)
     cdef Py_ssize_t nBoundary = boundary.size()
 
-    cdef Py_ssize_t[:, :] boundary_coordinate = np.empty([nBoundary, 2], dtype=np.int64)
+    cdef Py_ssize_t* boundary_coordinate = <Py_ssize_t*>malloc(2 * nBoundary * sizeof(Py_ssize_t))
 
-    for i in range(nBoundary):
-        boundary_coordinate[i, 0] = boundary[i] // m
-        boundary_coordinate[i, 1] = boundary[i] % m
-    return boundary_coordinate
+    # convert boundary from 1D indexing to 2D indexing
+    # and obtain the smallest box that includes the boundary
+    # Not vectorized, use the following if in C
+    #pragma ivdep
+    for k in range(nBoundary):
+        x = boundary[k] // m
+        y = boundary[k] % m
+        boundary_coordinate[2 * k] = x
+        boundary_coordinate[2 * k + 1] = y
+        x_min = x if x < x_min else x_min
+        y_min = y if y < y_min else y_min
+        x_max = x if x > x_max else x_max
+        y_max = y if y > y_max else y_max
+
+    cdef Py_ssize_t* distances_sq = <Py_ssize_t*>calloc(m * n, sizeof(Py_ssize_t))
+    # initialize
+    cdef Py_ssize_t upper_bound = m * m + n * n
+    for i in range(x_min + 1, x_max):
+        for j in range(y_min + 1, y_max):
+            distances_sq[i * m + j] = upper_bound if mask[i, j] else 0
+
+    cdef Py_ssize_t loc, distance_sq
+    for i in prange(x_min + 1, x_max, nogil=True, schedule='guided', num_threads=num_threads):
+        for j in range(y_min + 1, y_max):
+            if mask[i, j]:
+                loc = i * m + j
+                for k in range(nBoundary):
+                    distance_sq = (i - boundary_coordinate[2 * k])**2 + (j - boundary_coordinate[2 * k + 1])**2
+                    distances_sq[loc] = distance_sq if distance_sq < distances_sq[loc] else distances_sq[loc]
+
+    cdef double[:, :] distances = np.zeros([m, n])
+    cdef double* distances_ptr = &distances[0, 0]
+
+    for i in prange(x_min + 1, x_max, nogil=True, schedule='guided', num_threads=num_threads):
+        for j in range(y_min + 1, y_max):
+            loc = i * m + j
+            distances_ptr[loc] = sqrt(<double>distances_sq[loc])
+
+    # cdef np.int64_t[:, :] boundary_coordinate_np
+    if debug:
+        boundary_coordinate_np = np.empty([nBoundary * 2], dtype=np.int64)
+        for i in range(nBoundary * 2):
+            boundary_coordinate_np[i] = boundary_coordinate[i]
 
 
+    free(boundary_coordinate)
+    free(distances_sq)
 
-# def boundary_distance(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
-    
+    if debug:
+        return (distances, np.reshape(boundary_coordinate_np, [nBoundary, 2]), np.array([x_min, y_min, x_max, y_max]))
+    else:
+        return np.asarray(distances)
