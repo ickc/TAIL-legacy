@@ -30,7 +30,7 @@ install:
   # latest pip dropped support for py3.2, which is the version of python in pypy3
   - if [[ "$TRAVIS_PYTHON_VERSION" != "pypy3" ]]; then pip install -U pip; fi
   - make init
-  - make CC=gcc-6 CXX=g++-6
+  - make CC=gcc CXX=g++
 before_script:
   # pasteurize for py2 only, except setup.py & tail/version.py
   # - |
@@ -43,7 +43,7 @@ before_script:
   #   fi
 # command to run tests
 script:
-  - make pytest CC=gcc-6 CXX=g++-6
+  - make pytest CC=gcc CXX=g++
 after_success:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "3.5" ]]; then coveralls; else printf "skip coveralls"; fi
 before_deploy:
