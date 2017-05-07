@@ -102,11 +102,25 @@ cdef vector[Py_ssize_t] _get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] 
 # def get_box(vector[Py_ssize_t] boundary, Py_ssize_t m, Py_ssize_t n):
 #     Py_ssize_t i_min =
 #     for k in boundary:
-        
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
+    cdef Py_ssize_t i
+    cdef Py_ssize_t m = mask.shape[0]
+
     cdef vector[Py_ssize_t] boundary = _get_boundary(mask)
-    return np.asarray(boundary)
+    cdef Py_ssize_t nBoundary = boundary.size()
+
+    cdef Py_ssize_t[:, :] boundary_coordinate = np.empty([nBoundary, 2], dtype=np.int64)
+
+    for i in range(nBoundary):
+        boundary_coordinate[i, 0] = boundary[i] // m
+        boundary_coordinate[i, 1] = boundary[i] % m
+    return boundary_coordinate
+
+
 
 # def boundary_distance(np.ndarray[np.uint8_t, cast=True, ndim=2] mask):
     
