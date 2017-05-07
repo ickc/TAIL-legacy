@@ -139,6 +139,7 @@ def boundary_distance(np.ndarray[np.uint8_t, cast=True, ndim=2] mask, int num_th
     # initialize
     cdef Py_ssize_t upper_bound = m * m + n * n
     for i in range(x_min + 1, x_max):
+        # SIMD checked
         for j in range(y_min + 1, y_max):
             distances_sq[i * m + j] = upper_bound if mask[i, j] else 0
 
@@ -147,6 +148,7 @@ def boundary_distance(np.ndarray[np.uint8_t, cast=True, ndim=2] mask, int num_th
         for j in range(y_min + 1, y_max):
             if mask[i, j]:
                 loc = i * m + j
+                # SIMD checked
                 for k in range(nBoundary):
                     distance_sq = (i - boundary_coordinate[2 * k])**2 + (j - boundary_coordinate[2 * k + 1])**2
                     distances_sq[loc] = distance_sq if distance_sq < distances_sq[loc] else distances_sq[loc]
@@ -154,6 +156,7 @@ def boundary_distance(np.ndarray[np.uint8_t, cast=True, ndim=2] mask, int num_th
     cdef double[:, :] distances = np.zeros([m, n])
     cdef double* distances_ptr = &distances[0, 0]
 
+    # SIMD checked
     for i in prange(x_min + 1, x_max, nogil=True, schedule='guided', num_threads=num_threads):
         for j in range(y_min + 1, y_max):
             loc = i * m + j
