@@ -1,6 +1,6 @@
 from __future__ import print_function
-#from builtins import range
-#from builtins import object
+# from builtins import range
+# from builtins import object
 import numpy as np
 
 
@@ -76,7 +76,7 @@ def poly_filter_array(
     # do nothing
     if polyorder < 0:
         return input_array
-    #damn, work
+    # damn, work
     nch = input_array.shape[0]
     nt = input_array.shape[1]
     ns = len(scan_list)
@@ -90,7 +90,7 @@ def poly_filter_array(
         for s in range(len(scan_list)):
             istart, n = scan_list[s]
             start = istart - ibegin
-#			input_array[:,start:start+n] -= tile(np.mean(input_array[:,start:start+n]*mask[:,start:start+n],axis=1).reshape(nch,1),[1,n])
+#            input_array[:,start:start+n] -= tile(np.mean(input_array[:,start:start+n]*mask[:,start:start+n],axis=1).reshape(nch,1),[1,n])
             for i in range(nch):
                 if np.any(mask[i, start:start + n]):
                     mean = np.average(
@@ -126,8 +126,8 @@ def poly_filter_array(
                 coeff = np.dot(rinvqt, bolo)
                 coeff_out[i, s, :] = coeff
                 bolo -= np.dot(legendres, coeff)
-#				input_array[i,start:start+n] = filter_slice_legendre_qr_nomask_precalc(
-#					input_array[i,start:start+n], legendres,rinv,qt)
+#                input_array[i,start:start+n] = filter_slice_legendre_qr_nomask_precalc(
+#                    input_array[i,start:start+n], legendres,rinv,qt)
 
             for i in range(nch):
                 if goodhits[i] == n:
