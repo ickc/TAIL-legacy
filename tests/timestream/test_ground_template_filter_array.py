@@ -16,9 +16,9 @@ def simulate_ground_input(nCh, nTime, nPix):
 
     input_array = (np.random.rand(nCh, nTime) - 0.5) * 0.2
 
-    az = np.array([(az_range * (1 -
-                                abs(i % (2 * az_time_width) / float(az_time_width) - 1)) + az_min
-                    ) for i in range(nTime)])
+    az = np.array([(az_range * (
+        1 - abs(i % (2 * az_time_width) / float(az_time_width) - 1)
+    ) + az_min) for i in range(nTime)])
 
     mask_half_width = 50
     mask = np.repeat([[(i % az_time_width < mask_half_width
@@ -31,13 +31,15 @@ def simulate_ground_input(nCh, nTime, nPix):
 
 
 def test_ground_template_filter_array():
-    with open('tests/timestream/ground_template_filter_array_input.pkl', 'rb') as f:
+    with open('tests/timestream/ground_template_filter_array_input.pkl',
+              'rb') as f:
         if not py2:
             ground_template_filter_array_input = pickle.load(
                 f, encoding='latin1')
         else:
             ground_template_filter_array_input = pickle.load(f)
-    with open('tests/timestream/ground_template_filter_array_output.pkl', 'rb') as f:
+    with open('tests/timestream/ground_template_filter_array_output.pkl',
+              'rb') as f:
         if not py2:
             ground_template_filter_array_output = pickle.load(
                 f, encoding='latin1')
