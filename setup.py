@@ -15,7 +15,7 @@ extensions = [
         '-pipe',
         '-march=native',
         '-mtune=native',
-        '-qopt-report=5',
+        # '-qopt-report=5',
         '-fargument-noalias-global',
     ],
         extra_link_args=['-fopenmp'],
