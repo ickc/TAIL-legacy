@@ -60,15 +60,15 @@ cdef inline _ground_filter(
         # calculate ground template
         ## add total signal and no. of hits
         for j in range(nTime):
-            if mask[i, j]:
-                k = pointing[j]
-                bins_signal[nBin * i + k] += input_array[i, j]
-                bins_hit[nBin * i + k] += 1
+            # if mask[i, j]:
+            #     k = pointing[j]
+            #     bins_signal[nBin * i + k] += input_array[i, j]
+            #     bins_hit[nBin * i + k] += 1
             # the following allows SIMD. But Intel vectorization report said it would be inefficient
             # TODO: try again on KNL
-            # k = pointing[j]
-            # bins_signal[nBin * i + k] += input_array[i, j] * mask[i, j]
-            # bins_hit[nBin * i + k] += mask[i, j]
+            k = pointing[j]
+            bins_signal[nBin * i + k] += input_array[i, j] * mask[i, j]
+            bins_hit[nBin * i + k] += mask[i, j]
 
         ## average signal
         ## SIMD checked
@@ -205,12 +205,14 @@ def ground_template_filter_array(
         If groundmap = True, then do the exact opposite,
         and remove component from timestream that isn't fixed with the ground
     lr: bool
-        If true, ground substraction done separately on left and right moving scans
+        If true, ground substraction done separately
+        on left and right moving scans
     filtmask: numpy.ndarray
         shape: input_array
         dtype: bool
         default: None
-        filtmask is preprocessed from mask and addtional masking e.g. from point source
+        filtmask is preprocessed from mask and addtional masking
+        e.g. from point source
         In largepatch filtmask refers to wafermask_chan_filt
     '''
     # loop indices
