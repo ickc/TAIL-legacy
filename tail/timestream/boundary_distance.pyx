@@ -3,7 +3,7 @@ cimport numpy as np
 
 cimport cython
 
-from cython.parallel import parallel, prange
+from cython.parallel cimport prange
 
 from libc.stdlib cimport malloc, calloc, free
 
@@ -12,8 +12,6 @@ from libc.math cimport sqrt
 from libcpp.vector cimport vector
 
 from libcpp cimport bool
-
-# from numpy.math cimport INFINITY
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
