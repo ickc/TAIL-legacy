@@ -1,19 +1,8 @@
-from __future__ import print_function
-#from builtins import range
-#from builtins import object
 import numpy as np
 cimport numpy as np
-import cython
+cimport cython
 
-from cython.view cimport array as cvarray
-from cython.parallel import parallel, prange
-
-from libc.math cimport round
-from libc.stdlib cimport malloc, calloc, free
-from libcpp cimport bool
-
-from numpy.math cimport INFINITY
-
+from cython.parallel cimport prange
 
 class LegCache(object):
     def __init__(self):
