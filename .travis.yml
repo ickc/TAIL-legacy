@@ -30,7 +30,7 @@ install:
   # latest pip dropped support for py3.2, which is the version of python in pypy3
   - if [[ "$TRAVIS_PYTHON_VERSION" != "pypy3" ]]; then pip install -U pip; fi
   - make init
-  - make CC=gcc CXX=g++
+  - make CC=g++ CXX=g++
 before_script:
   # pasteurize for py2 only, except setup.py & tail/version.py
   # - |
