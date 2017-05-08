@@ -33,27 +33,28 @@ def simple_map(signal_map, hits_map, pointing, mask, array):
     assert mask.dtype == np.bool
 
     c_code = '''
-	int ch,t;
-	int pix;
-	for(ch=0;ch<nch;ch++) {
-		for(t=0;t<nt;t++) {
-			pix = pointing(t);
-			signal_map(ch,pix) += array(ch,t)*mask(ch,t);
-			hits_map(ch,pix) += mask(ch,t);
-		}
-	}
+    int ch,t;
+    int pix;
+    for(ch=0;ch<nch;ch++) {
+        for(t=0;t<nt;t++) {
+            pix = pointing(t);
+            signal_map(ch,pix) += array(ch,t)*mask(ch,t);
+            hits_map(ch,pix) += mask(ch,t);
+        }
+    }
 
-	for(ch=0;ch<nch;ch++) {
-		for(pix=0;pix<npix;pix++) {
-			if(hits_map(ch,pix) > 0) {
-				signal_map(ch,pix) /= hits_map(ch,pix);
-			}
-		}
-	}
-	'''
+    for(ch=0;ch<nch;ch++) {
+        for(pix=0;pix<npix;pix++) {
+            if(hits_map(ch,pix) > 0) {
+                signal_map(ch,pix) /= hits_map(ch,pix);
+            }
+        }
+    }
+    '''
 
-    weave.inline(c_code, ['array', 'pointing', 'mask', 'signal_map', 'hits_map',
-                          'nch', 'nt', 'npix'], type_converters=weave.converters.blitz)
+    weave.inline(c_code, ['array', 'pointing', 'mask', 'signal_map',
+                          'hits_map', 'nch', 'nt', 'npix'],
+                 type_converters=weave.converters.blitz)
 
 
 def simple_scan_subtract(signal_map, pointing, array):
@@ -65,18 +66,19 @@ def simple_scan_subtract(signal_map, pointing, array):
     assert np.min(pointing) >= 0
 
     c_code = '''
-	int ch,t;
-	int pix;
-	for(ch=0;ch<nch;ch++) {
-		for(t=0;t<nt;t++) {
-			pix = pointing(t);
-			array(ch,t) -= signal_map(ch,pix);
-		}
-	}
-	'''
+    int ch,t;
+    int pix;
+    for(ch=0;ch<nch;ch++) {
+        for(t=0;t<nt;t++) {
+            pix = pointing(t);
+            array(ch,t) -= signal_map(ch,pix);
+        }
+    }
+    '''
 
     weave.inline(c_code, ['array', 'pointing', 'npix', 'nt', 'nch',
-                          'signal_map'], type_converters=weave.converters.blitz)
+                          'signal_map'],
+                 type_converters=weave.converters.blitz)
 
 
 def ground_template_filter_array(
@@ -92,13 +94,13 @@ def ground_template_filter_array(
 
     Parameters
     ----------
-    input_array: array_like
+    input_array: numpy.ndarray
         shape: (number of channels, number of time steps)
         Input timestream, mutated inplace.
-    az: array_like
+    az: numpy.ndarray
         shape: input_array[0]
         The azimuth of the timestream.
-    mask: array_like
+    mask: numpy.ndarray
         shape: input_array
         dtype: bool
     pixel_size: float
@@ -106,12 +108,14 @@ def ground_template_filter_array(
         If groundmap = True, then do the exact opposite,
         and remove component from timestream that isn't fixed with the ground
     lr: bool
-        If true, ground substraction done separately on left and right moving scans
-    filtmask: array_like
+        If true, ground substraction done separately
+        on left and right moving scans
+    filtmask: numpy.ndarray
         shape: input_array
         dtype: bool
-        filtmask means to compute the filter template with that subset of the data,
-        operation is applied to data specified by mask
+        default: None
+        filtmask is preprocessed from mask and addtional masking
+        e.g. from point source
         In largepatch filtmask refers to wafermask_chan_filt
     '''
     # initialize
