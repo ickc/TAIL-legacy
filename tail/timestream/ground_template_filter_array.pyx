@@ -1,9 +1,7 @@
-import numpy as np
 cimport numpy as np
-import cython
+cimport cython
 
-from cython.view cimport array as cvarray
-from cython.parallel import parallel, prange
+from cython.parallel cimport prange
 
 from libc.math cimport round
 from libc.stdlib cimport malloc, calloc, free
