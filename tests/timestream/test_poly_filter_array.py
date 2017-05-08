@@ -7,6 +7,7 @@ import sys
 py2 = sys.version_info[0] == 2
 import numpy as np
 
+
 def simulate_poly_input(nCh, nTime, polyorder):
     az_time_width = 400
 
