@@ -214,6 +214,9 @@ def ground_template_filter_array(
         filtmask is preprocessed from mask and addtional masking
         e.g. from point source
         In largepatch filtmask refers to wafermask_chan_filt
+    num_threads: int
+        default: 4
+        Number of OpenMP threads.
     '''
     # loop indices
     cdef Py_ssize_t i
