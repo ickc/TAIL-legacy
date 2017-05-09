@@ -60,15 +60,15 @@ cdef inline _ground_filter(
         # calculate ground template
         ## add total signal and no. of hits
         for j in range(nTime):
-            # if mask[i, j]:
-            #     k = pointing[j]
-            #     bins_signal[nBin * i + k] += input_array[i, j]
-            #     bins_hit[nBin * i + k] += 1
+            if mask[i, j]:
+                k = pointing[j]
+                bins_signal[nBin * i + k] += input_array[i, j]
+                bins_hit[nBin * i + k] += 1
             # the following allows SIMD. But Intel vectorization report said it would be inefficient
             # TODO: try again on KNL
-            k = pointing[j]
-            bins_signal[nBin * i + k] += input_array[i, j] * mask[i, j]
-            bins_hit[nBin * i + k] += mask[i, j]
+            # k = pointing[j]
+            # bins_signal[nBin * i + k] += input_array[i, j] * mask[i, j]
+            # bins_hit[nBin * i + k] += mask[i, j]
 
         ## average signal
         ## SIMD checked
