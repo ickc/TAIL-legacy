@@ -2,7 +2,7 @@
 #SBATCH -N 1
 #SBATCH -C knl,quad,flat
 #SBATCH -p debug
-#SBATCH -J benchmark tail
+#SBATCH -J benchmark-tail
 #SBATCH -t 00:30:00
 
 #OpenMP settings:
