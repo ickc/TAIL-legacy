@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     ground_input = simulate_ground_input(nCh, nTime, nPix)
     for i, p in enumerate(process_range):
-        temp = timeit.repeat(stmt='ground_template_filter_array(*ground_input, num_threads=p)', repeat=repeat, number=number, globals=globals())
+        temp = timeit.repeat(stmt='ground_template_filter_array(*ground_input, lr=True, num_threads=p)', repeat=repeat, number=number, globals=globals())
         time[i, 1] = min(temp) / number
         print(time)
 
