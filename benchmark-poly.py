@@ -22,5 +22,6 @@ if __name__ == "__main__":
     nPoly = 4
 
     poly_input = simulate_poly_input(nCh, nTime, nPoly)
-    temp = timeit.repeat(stmt='poly_filter_array(*poly_input, num_threads=num_threads)', repeat=repeat, number=number, globals=globals())
+    temp = timeit.repeat(stmt='poly_filter_array(*poly_input, num_threads=num_threads)',
+                         repeat=repeat, number=number, globals=globals())
     print('{},{}'.format(num_threads, min(temp) / number))
