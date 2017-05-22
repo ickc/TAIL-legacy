@@ -21,13 +21,13 @@ if __name__ == "__main__":
 
     # KNL
     # testing KNL's 1 to 68 cores, and 1 to 4 hyperthreadings
-    # process_range = (1, 2, 4, 8, 16, 32, 64, 65, 66, 67, 68,
-    #                  128, 130, 132, 134, 136,
-    #                  192, 195, 198, 201, 204,
-    #                  256, 260, 264, 268, 272)
+    process_range = (1, 2, 4, 8, 16, 32, 64, 65, 66, 67, 68,
+                     128, 130, 132, 134, 136,
+                     192, 195, 198, 201, 204,
+                     256, 260, 264, 268, 272)
     # testing Haswell nodes
-    process_range = (1, 2, 4, 8, 16, 32, 64)
-    number = 10
+    # process_range = (1, 2, 4, 8, 16, 32, 64)
+    number = 3
     repeat = 3
 
     # initialize time for output
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     time[:, 0] = process_range
 
     # timing ground_template_filter_array
-    nCh = 50000
+    nCh = 10000
     nTime = 10000
     nPix = 8192
 
