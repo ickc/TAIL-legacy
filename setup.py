@@ -19,7 +19,7 @@ extensions = [
         '-fargument-noalias-global',
     ],
         extra_link_args=['-fopenmp'],
-        language='c++',
+        # language='c++',
     ),
 ]
 
