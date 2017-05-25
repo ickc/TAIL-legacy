@@ -21,55 +21,31 @@ cdef inline Py_ssize_t _get_start(np.uint8_t* mask, Py_ssize_t mn):
         if mask[ij]:
             return ij
 
-cdef class Coordinate(object):
-    """
-    A class that handles basic coordinates operation
-    The coordinate types are Py_ssize_t
-    Note that from the indicies used in 2D array,
-    the 1st index points down and 2nd index points right,
-    unlike how Cartesian coordinates are usually drawn.
-    """
-    cdef Py_ssize_t x, y
-    def __cinit__(Coordinate self, Py_ssize_t i, Py_ssize_t j):
-        self.x = i
-        self.y = j
-    cdef void iadd(Coordinate self, Coordinate r2):
-        self.x += r2.x
-        self.y += r2.y
-    # cdef bool isEqual(Coordinate self, Coordinate r2):
-    #     return (self.x == r2.x and self.y == r2.y)
-    cdef void rotate_left(Coordinate self):
-        # (x + yi) * i = -y + xi
-        cdef Py_ssize_t x = self.x
-        self.x = -self.y
-        self.y = x
-    cdef void rotate_right(Coordinate self):
-        # (x + yi) * -i = y - xi
-        cdef Py_ssize_t x = self.x
-        self.x = self.y
-        self.y = -x
-    cdef Py_ssize_t get_x(Coordinate self):
-        return self.x
-    cdef Py_ssize_t get_y(Coordinate self):
-        return self.y
 
 cdef class Turtle(object):
-    cdef Coordinate r, v
-    def __cinit__(Turtle self, Coordinate c2):
-        self.r = c2
-        self.v = Coordinate(0, 1)
+    cdef Py_ssize_t x, y, v_x, v_y
+    def __cinit__(Turtle self, Py_ssize_t x, Py_ssize_t y):
+        self.x = x
+        self.y = y
+        self.v_x = 0
+        self.v_y = 1
     cdef void walk(Turtle self):
-        self.r.iadd(self.v)
+        self.x += self.v_x
+        self.y += self.v_y
     cdef void rotate_left(Turtle self):
-        self.v.rotate_left()
+        # (x + yi) * i = -y + xi
+        cdef Py_ssize_t v_x = self.v_x
+        self.v_x = -self.v_y
+        self.v_y = v_x
     cdef void rotate_right(Turtle self):
-        self.v.rotate_right()
+        # (x + yi) * -i = y - xi
+        cdef Py_ssize_t v_x = self.v_x
+        self.v_x = self.v_y
+        self.v_y = -v_x
     cdef Py_ssize_t get_x(Turtle self):
-        return self.r.get_x()
+        return self.x
     cdef Py_ssize_t get_y(Turtle self):
-        return self.r.get_y()
-
-# cdef class Boundary()
+        return self.y
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -82,7 +58,7 @@ cdef vector[Py_ssize_t] get_boundary(np.ndarray[np.uint8_t, cast=True, ndim=2] m
     n = mask.shape[1]
     start = _get_start(&mask[0, 0], m * n)
 
-    turtle = Turtle(Coordinate(start // m, start % m))
+    turtle = Turtle(start // m, start % m)
     boundary.push_back(start)
     while True:
         turtle.walk()
