@@ -5,7 +5,9 @@ from cython.parallel cimport prange
 
 from libc.math cimport round
 from libc.stdlib cimport malloc, calloc, free
-from libcpp cimport bool
+
+cdef extern from "stdbool.h":
+    ctypedef bint bool
 
 from numpy.math cimport INFINITY
 

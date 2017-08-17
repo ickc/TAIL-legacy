@@ -2,7 +2,7 @@
 
 # Introduction
 
-Experimental pipeline as an alternative to POLARBEAR's AnalysisBackend — refactorize, modernize, cythonize, parallelize.
+Experimental parallelization of POLARBEAR's AnalysisBackend through Cython — refactorize, modernize, cythonize, parallelize.
 
 TAIL stands for This Ain't Interpreted Language, which emphasize all modules are written in Cython and hence compiled. It is also a word play on POLARBEAR's AnalysisBackend — the "backend of polarbear", which has the shortest tails among living bears. Symbolically, TAIL should be like a tail of a polarbear — you never notice it in front of this powerful polarbear.
 
