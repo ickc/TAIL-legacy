@@ -11,7 +11,7 @@ cdef extern from "stdbool.h":
 
 from numpy.math cimport INFINITY
 
-cdef double EPSILON = 7. / 3 - 4. / 3 - 1
+DEF EPSILON = 7. / 3 - 4. / 3 - 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
