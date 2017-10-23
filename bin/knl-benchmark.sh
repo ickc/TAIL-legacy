@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #SBATCH -N 1
 #SBATCH -C knl,quad,flat
 #SBATCH -p debug
