@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH -N 1
 #SBATCH -C knl,quad,flat
-#SBATCH -p debug
+#SBATCH -q debug
 #SBATCH -J make-tail
 #SBATCH -t 00:05:00
 

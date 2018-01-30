@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH -N 1
 #SBATCH -C haswell
-#SBATCH -p debug
+#SBATCH -q debug
 #SBATCH -J benchmark-haswell
 #SBATCH -t 00:30:00
 
