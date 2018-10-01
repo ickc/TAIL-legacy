@@ -20,7 +20,7 @@ cython: $(cythonSO)
 
 clean:
 	rm -f .coverage $(cythonC) $(cythonReport) $(cythonCXX)
-	rm -rf htmlcov tail.egg-info build
+	rm -rf htmlcov tail.egg-info build .cache
 	find . -type f -name "*.py[co]" -delete -or -type d -name "__pycache__" -delete -or -type f -name "*.so" -delete
 
 test: pytest pep8
